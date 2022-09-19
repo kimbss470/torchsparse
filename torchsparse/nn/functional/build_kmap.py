@@ -68,7 +68,7 @@ def build_kernel_map(_coords: torch.Tensor,
         input_mask, output_mask = torchsparse.backend.build_mask_from_kmap(
             _coords.shape[0], coords.shape[0], nbmaps.int(), nbsizes.int())
 
-        nvtx.pop_range(rng)
+        nvtx.range_pop()
         if any(s > 1 for s in stride):
             return nbmaps, nbsizes, coords, input_mask, output_mask
         else:
