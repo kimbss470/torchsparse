@@ -23,7 +23,7 @@ TorchSparse depends on the [Google Sparse Hash](https://github.com/sparsehash/sp
 The latest released TorchSparse (v1.4.0) can then be installed by
 
 ```bash
-pip install --upgrade git+https://github.com/mit-han-lab/torchsparse.git@v1.4.0
+pip install --upgrade git+https://github.com/kimbss470/torchsparse.git@v1.4.0
 ```
 
 If you use TorchSparse in your code, please remember to specify the exact version in your dependencies.
