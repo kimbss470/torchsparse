@@ -5,6 +5,7 @@
 #include <THC/THCAtomics.cuh>
 #include <cmath>
 
+#include "nvToolsExt.h"
 // hashing
 // input N*F float tensor, pointer to output N'*F int64 tensor, N*1 count
 // tensor, N*1 index tensor
@@ -47,6 +48,7 @@ at::Tensor voxelize_forward_cuda(const at::Tensor inputs, const at::Tensor idx,
   int c = inputs.size(1);
   int N1 = counts.size(0);
 
+  nvtxRangePushA("cuda voxelize");
   at::Tensor out =
       torch::zeros({N1, c}, at::device(idx.device()).dtype(inputs.dtype()));
 
@@ -57,6 +59,7 @@ at::Tensor voxelize_forward_cuda(const at::Tensor inputs, const at::Tensor idx,
             counts.data_ptr<int>(), out.data_ptr<scalar_t>());
       }));
 
+  nvtxRangePop();
   return out;
 }
 

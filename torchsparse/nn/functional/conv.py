@@ -10,6 +10,8 @@ from torchsparse import SparseTensor
 from torchsparse.nn import functional as F
 from torchsparse.utils import make_ntuple
 
+import torch.cuda.nvtx as nvtx
+
 buffer = torch.Tensor()
 
 __all__ = ['conv3d']
@@ -53,6 +55,7 @@ class ConvolutionFunction(Function):
                                      device=input.device)
 
         if input.device.type == 'cuda':
+            rng = nvtx.range_push("conv")
             output = torchsparse.backend.convolution_forward_cuda(
                 input,
                 weight,
@@ -67,6 +70,7 @@ class ConvolutionFunction(Function):
                 transposed,
                 buffer,
             )
+            nvtx.range_pop()
         elif input.device.type == 'cpu':
             torchsparse.backend.convolution_forward_cpu(input, output, weight,
                                                         nbmaps, nbsizes.cpu(),
@@ -165,9 +169,10 @@ def conv3d(
                                  device=input.F.device,
                                  requires_grad=False)
 
-    if kernel_size == (1, 1, 1) and stride == (1, 1, 1) and dilation == (1, 1,
-                                                                         1):
+    if kernel_size == (1, 1, 1) and stride == (1, 1, 1) and dilation == (1, 1, 1):
+        rng = nvtx.range_push("conv_s1")
         feats = feats.matmul(weight)
+        nvtx.range_pop()
         if bias is not None:
             feats += bias
         output = SparseTensor(coords=coords, feats=feats, stride=input.stride)

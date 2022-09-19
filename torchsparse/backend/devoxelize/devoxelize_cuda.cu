@@ -5,6 +5,8 @@
 
 #include <THC/THCAtomics.cuh>
 
+#include "nvToolsExt.h"
+
 // input features (n, c), indices (N, 8), weight (N, 8) -> output features (N,
 // c)
 template <typename scalar_t>
@@ -64,6 +66,7 @@ at::Tensor devoxelize_forward_cuda(const at::Tensor feat,
   int c = feat.size(1);
   int N = indices.size(0);
 
+  nvtxRangePushA("cuda devoxelize");
   at::Tensor out =
       torch::zeros({N, c}, at::device(feat.device()).dtype(feat.dtype()));
 
@@ -73,7 +76,7 @@ at::Tensor devoxelize_forward_cuda(const at::Tensor feat,
             N, c, indices.data_ptr<int>(), weight.data_ptr<scalar_t>(),
             feat.data_ptr<scalar_t>(), out.data_ptr<scalar_t>());
       }));
-
+  nvtxRangePop();
   return out;
 }
 

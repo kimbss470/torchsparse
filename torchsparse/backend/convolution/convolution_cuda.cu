@@ -10,6 +10,8 @@
 
 #include "convolution_cuda.h"
 
+#include <nvToolsExt.h>
+
 #define CONVERT_FLOAT(pointer) (reinterpret_cast<float *>(&(pointer))[0])
 #define CONVERT_HALF2(pointer) (reinterpret_cast<half2 *>(&(pointer))[0])
 #define CONVERT_INT4(pointer) (reinterpret_cast<int4 *>(&(pointer))[0])
@@ -18,6 +20,8 @@ template <typename scalar_t>
 __global__ void gather_kernel(const int n_k, const int n_in, const int c,
                               scalar_t *in_feat, scalar_t *out_feat,
                               const int *kmap, const bool transpose) {
+
+ 
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   bool isfloat = sizeof(scalar_t) == 4;
   int i, j;
@@ -778,6 +782,7 @@ at::Tensor convolution_forward_cuda_fallback(
     }
     // gather n_active_feats dense features from N sparse input features with c
     // feature dimensions
+    nvtxRangePushA("cuda Gather");
     AT_DISPATCH_FLOATING_TYPES_AND_HALF(
         in_feat.type(), "convolution_forward_cuda", ([&] {
           gather_kernel<scalar_t>
@@ -787,14 +792,18 @@ at::Tensor convolution_forward_cuda_fallback(
                   in_buffer_activated.data_ptr<scalar_t>(),
                   neighbor_map.data_ptr<int>() + cur_offset, transpose);
         }));
+    nvtxRangePop();
     // gemm: (i, c) X (c, o) = (i, o)
+    nvtxRangePushA("cuda MatMul");
     int kmap_idx = i;
     if (conv_mode == 2) {
       kmap_idx = i < mid_kernel ? i * 2 : (kernel_volume - i) * 2 - 1;
     }
     torch::mm_out(out_buffer_activated, in_buffer_activated, kernel[kmap_idx]);
+    nvtxRangePop();
     // scatter n_active_feats dense features into n_out_feats output features of
     // dimension n_out_channels
+    nvtxRangePushA("cuda Scatter");
     AT_DISPATCH_FLOATING_TYPES_AND_HALF(
         in_feat.type(), "convolution_forward_cuda", ([&] {
           scatter_kernel<scalar_t>
@@ -806,6 +815,7 @@ at::Tensor convolution_forward_cuda_fallback(
         }));
     cur_offset += 2 * n_active_feats;
   }
+  nvtxRangePop();
 
   if (padded) {
     out_feat = at::slice(out_feat, 1, 0, n_out_channels - 1).contiguous();
