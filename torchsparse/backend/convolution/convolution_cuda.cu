@@ -814,8 +814,8 @@ at::Tensor convolution_forward_cuda_fallback(
                   neighbor_map.data_ptr<int>() + cur_offset, transpose);
         }));
     cur_offset += 2 * n_active_feats;
+    nvtxRangePop();
   }
-  nvtxRangePop();
 
   if (padded) {
     out_feat = at::slice(out_feat, 1, 0, n_out_channels - 1).contiguous();
