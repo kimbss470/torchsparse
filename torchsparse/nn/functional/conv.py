@@ -258,5 +258,5 @@ def conv3d(
     output.cmaps = input.cmaps
     output.cmaps.setdefault(output.stride, output.coords)
     output.kmaps = input.kmaps
-    nvtx.pop_range()
+    nvtx.pop_range(domain="torch-layer")
     return output
