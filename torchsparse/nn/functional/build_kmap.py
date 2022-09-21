@@ -7,7 +7,7 @@ from torchsparse.nn import functional as F
 from torchsparse.nn.utils import get_kernel_offsets
 from torchsparse.utils import make_ntuple
 
-import torch.cuda.nvtx as nvtx
+import nvtx
 __all__ = ['build_kernel_map']
 
 
@@ -45,7 +45,7 @@ def build_kernel_map(_coords: torch.Tensor,
         else:
             return tuple(out[:2]) + (out[2][:, [1, 2, 3, 0]],) + tuple(out[3:])
     else:
-        rng = nvtx.range_push("map search")
+        nvtx.push_range("map search")
         offsets = get_kernel_offsets(kernel_size,
                                      stride=tensor_stride,
                                      device=_coords.device)
@@ -68,7 +68,7 @@ def build_kernel_map(_coords: torch.Tensor,
         input_mask, output_mask = torchsparse.backend.build_mask_from_kmap(
             _coords.shape[0], coords.shape[0], nbmaps.int(), nbsizes.int())
 
-        nvtx.range_pop()
+        nvtx.pop_range()
         if any(s > 1 for s in stride):
             return nbmaps, nbsizes, coords, input_mask, output_mask
         else:
