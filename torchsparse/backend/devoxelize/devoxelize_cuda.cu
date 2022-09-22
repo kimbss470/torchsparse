@@ -129,7 +129,7 @@ at::Tensor calc_ti_weights_cuda(const at::Tensor coords,
 
     AT_DISPATCH_FLOATING_TYPES_AND_HALF(
         coords.type(), "calc_ti_weights_cuda", ([&] {
-            calc_ti_weights_kernel<scalar_t><<<N/256, 256>>>(
+            calc_ti_weights_kernel<scalar_t><<<N/64, 64>>>(
                 N, scale, coords.data_ptr<scalar_t>(), indices.data_ptr<int>(), weight.data_ptr<scalar_t>());
 
         }));
