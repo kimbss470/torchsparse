@@ -55,6 +55,7 @@ class ConvolutionFunction(Function):
                                      device=input.device)
 
         if input.device.type == 'cuda':
+            nvtx.push_range("conv after mapsearch")
             output = torchsparse.backend.convolution_forward_cuda(
                 input,
                 weight,
@@ -69,6 +70,7 @@ class ConvolutionFunction(Function):
                 transposed,
                 buffer,
             )
+            nvtx.pop_range()
         elif input.device.type == 'cpu':
             torchsparse.backend.convolution_forward_cpu(input, output, weight,
                                                         nbmaps, nbsizes.cpu(),
@@ -230,7 +232,7 @@ def conv3d(
             feats=feats,
             stride=tuple(input.stride[k] * stride[k] for k in range(3)),
         )
-    else:
+    else: # transposed conv
         tensor_stride = tuple(input.stride[k] // stride[k] for k in range(3))
         kmap = input.kmaps[(tensor_stride, kernel_size, stride, dilation)]
         feats = ConvolutionFunction.apply(

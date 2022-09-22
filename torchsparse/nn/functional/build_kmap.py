@@ -46,28 +46,41 @@ def build_kernel_map(_coords: torch.Tensor,
             return tuple(out[:2]) + (out[2][:, [1, 2, 3, 0]],) + tuple(out[3:])
     else:
         nvtx.push_range("map search")
+        nvtx.push_range("get kernel off")
         offsets = get_kernel_offsets(kernel_size,
                                      stride=tensor_stride,
                                      device=_coords.device)
 
+        nvtx.pop_range()
+        nvtx.push_range("hash cal")
         references = F.sphash(_coords)
+        nvtx.pop_range()
         kernel_size = make_ntuple(kernel_size, ndim=3)
         stride = make_ntuple(stride, ndim=3)
         if any(s > 1 for s in stride):
             coords = F.spdownsample(_coords, stride, kernel_size, tensor_stride)
         else:
             coords = _coords
+        nvtx.push_range("hash cal")
         queries = F.sphash(coords, offsets)
+        nvtx.pop_range()
+        nvtx.push_range("hash query")
         results = F.sphashquery(queries, references)
+        nvtx.pop_range()
+        nvtx.push_range("etc")
         nbsizes = torch.sum(results != -1, dim=1)
+        #  import pdb; pdb.set_trace()
         nbmaps = torch.nonzero(results != -1)
         nbmaps[:, 0] = results.view(-1)[nbmaps[:, 0] * results.size(1)
                                         + nbmaps[:, 1]]
         # important for build masks
         nbmaps = nbmaps.contiguous()
+        nvtx.pop_range()
+        nvtx.push_range("build mask")
         input_mask, output_mask = torchsparse.backend.build_mask_from_kmap(
             _coords.shape[0], coords.shape[0], nbmaps.int(), nbsizes.int())
 
+        nvtx.pop_range()
         nvtx.pop_range()
         if any(s > 1 for s in stride):
             return nbmaps, nbsizes, coords, input_mask, output_mask

@@ -7,6 +7,68 @@
 
 #include "nvToolsExt.h"
 
+
+template <typename scalar_t>
+__global__ void calc_ti_weights_kernel(int N, const float scale, const scalar_t *__restrict__ coords, const int *__restrict__ indices, scalar_t *__restrict__ weight) {
+
+
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < N) {
+        int idx_x = index * 3;
+        int idx_y = index * 3 + 1;
+        int idx_z = index * 3 + 2;
+        scalar_t x = coords[idx_x];
+        scalar_t y = coords[idx_y];
+        scalar_t z = coords[idx_z];
+
+        xf = (int)(x / scale) * scale;
+        yf = (int)(y / scale) * scale;
+        zf = (int)(z / scale) * scale;
+
+        xc = xf + scale; 
+        yc = yf + scale; 
+        zc = zf + scale; 
+
+        w0 = (xc - x) * (yc - y) * (zc - z);
+        w1 = (xc - x) * (yc - y) * (z - zf);
+        w2 = (xc - x) * (y - yf) * (zc - z);
+        w3 = (xc - x) * (y - yf) * (z - zf);
+        w4 = (x - xf) * (yc - y) * (zc - z);
+        w5 = (x - xf) * (yc - y) * (z - zf);
+        w6 = (x - xf) * (y - yf) * (zc - z);
+        w7 = (x - xf) * (y - yf) * (z - zf);
+        
+        w0 = indices[index] == -1 ? 0 : w0;
+        w1 = indices[index+1] == -1 ? 0 : w1;
+        w2 = indices[index+2] == -1 ? 0 : w2;
+        w3 = indices[index+3] == -1 ? 0 : w3;
+        w4 = indices[index+4] == -1 ? 0 : w4;
+        w5 = indices[index+5] == -1 ? 0 : w5;
+        w6 = indices[index+6] == -1 ? 0 : w6;
+        w7 = indices[index+7] == -1 ? 0 : w7;
+
+        sum_w = w0 + w1 + w2 + w3 + w4 + w5 + w6 + w7 + 1e-8;
+        w0 /= sum_w; 
+        w1 /= sum_w;
+        w2 /= sum_w;
+        w3 /= sum_w;
+        w4 /= sum_w;
+        w5 /= sum_w;
+        w6 /= sum_w;
+        w7 /= sum_w;
+
+        weight[index*8] = w0;
+        weight[index*8+1] = w1;
+        weight[index*8+2] = w2;
+        weight[index*8+3] = w3;
+        weight[index*8+4] = w4;
+        weight[index*8+5] = w5;
+        weight[index*8+6] = w6;
+        weight[index*8+7] = w7;
+    }
+
+} 
+
 // input features (n, c), indices (N, 8), weight (N, 8) -> output features (N,
 // c)
 template <typename scalar_t>
@@ -58,6 +120,21 @@ __global__ void devoxelize_backward_kernel(
   }
 }
 
+
+at::Tensor calc_ti_weights_cuda(const at::Tensor coords, 
+                                const at::Tensor indices,
+                                float scale ) {
+    int N = coords.size(0);
+    at::Tensor weight = torch::zeros({N,8}, at::device(coords.device()).dtype(coords.dtype()));
+
+    AT_DISTPATCH_FLOATING_TYPE_AND_HALF(
+        coords.type(), "calc_ti_weights_cuda", ([&] {
+            calc_ti_weights_kernel<scalar_t><<<N/256, 256>>>(
+                N, scale, coords.data_ptr<scalar_t>(), indices.data_ptr<int>(), weight.data_ptr<scalar_t>());
+
+        }));
+    return weight;
+}
 // make sure indices is int type
 // feat: (b,c,s) indices: (N, 3) batch_index: (N, ) -> out: (N, c)
 at::Tensor devoxelize_forward_cuda(const at::Tensor feat,
