@@ -13,7 +13,7 @@ __global__ void calc_ti_weights_kernel(int N, const float scale, const scalar_t 
 
 
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < N) {
+    if (index < N) {
         int idx_x = index * 3;
         int idx_y = index * 3 + 1;
         int idx_z = index * 3 + 2;
@@ -21,22 +21,22 @@ __global__ void calc_ti_weights_kernel(int N, const float scale, const scalar_t 
         scalar_t y = coords[idx_y];
         scalar_t z = coords[idx_z];
 
-        xf = (int)(x / scale) * scale;
-        yf = (int)(y / scale) * scale;
-        zf = (int)(z / scale) * scale;
+        scalar_t xf = (int)(x / scale) * scale;
+        scalar_t yf = (int)(y / scale) * scale;
+        scalar_t zf = (int)(z / scale) * scale;
+    
+        scalar_t xc = xf + scale; 
+        scalar_t yc = yf + scale; 
+        scalar_t zc = zf + scale; 
 
-        xc = xf + scale; 
-        yc = yf + scale; 
-        zc = zf + scale; 
-
-        w0 = (xc - x) * (yc - y) * (zc - z);
-        w1 = (xc - x) * (yc - y) * (z - zf);
-        w2 = (xc - x) * (y - yf) * (zc - z);
-        w3 = (xc - x) * (y - yf) * (z - zf);
-        w4 = (x - xf) * (yc - y) * (zc - z);
-        w5 = (x - xf) * (yc - y) * (z - zf);
-        w6 = (x - xf) * (y - yf) * (zc - z);
-        w7 = (x - xf) * (y - yf) * (z - zf);
+        scalar_t w0 = (xc - x) * (yc - y) * (zc - z);
+        scalar_t w1 = (xc - x) * (yc - y) * (z - zf);
+        scalar_t w2 = (xc - x) * (y - yf) * (zc - z);
+        scalar_t w3 = (xc - x) * (y - yf) * (z - zf);
+        scalar_t w4 = (x - xf) * (yc - y) * (zc - z);
+        scalar_t w5 = (x - xf) * (yc - y) * (z - zf);
+        scalar_t w6 = (x - xf) * (y - yf) * (zc - z);
+        scalar_t w7 = (x - xf) * (y - yf) * (z - zf);
         
         w0 = indices[index] == -1 ? 0 : w0;
         w1 = indices[index+1] == -1 ? 0 : w1;
@@ -47,7 +47,7 @@ __global__ void calc_ti_weights_kernel(int N, const float scale, const scalar_t 
         w6 = indices[index+6] == -1 ? 0 : w6;
         w7 = indices[index+7] == -1 ? 0 : w7;
 
-        sum_w = w0 + w1 + w2 + w3 + w4 + w5 + w6 + w7 + 1e-8;
+        scalar_t sum_w = w0 + w1 + w2 + w3 + w4 + w5 + w6 + w7 + 1e-8;
         w0 /= sum_w; 
         w1 /= sum_w;
         w2 /= sum_w;
