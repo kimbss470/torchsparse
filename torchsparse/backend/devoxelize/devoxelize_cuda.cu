@@ -38,14 +38,14 @@ __global__ void calc_ti_weights_kernel(int N, const float scale, const scalar_t 
         scalar_t w6 = (x - xf) * (y - yf) * (zc - z);
         scalar_t w7 = (x - xf) * (y - yf) * (z - zf);
         
-        w0 = indices[index] == -1 ? 0 : w0;
-        w1 = indices[index+1] == -1 ? 0 : w1;
-        w2 = indices[index+2] == -1 ? 0 : w2;
-        w3 = indices[index+3] == -1 ? 0 : w3;
-        w4 = indices[index+4] == -1 ? 0 : w4;
-        w5 = indices[index+5] == -1 ? 0 : w5;
-        w6 = indices[index+6] == -1 ? 0 : w6;
-        w7 = indices[index+7] == -1 ? 0 : w7;
+        w0 = (indices[index] == -1) ? 0 : w0;
+        w1 = (indices[index+1] == -1) ? 0 : w1;
+        w2 = (indices[index+2] == -1) ? 0 : w2;
+        w3 = (indices[index+3] == -1) ? 0 : w3;
+        w4 = (indices[index+4] == -1) ? 0 : w4;
+        w5 = (indices[index+5] == -1) ? 0 : w5;
+        w6 = (indices[index+6] == -1) ? 0 : w6;
+        w7 = (indices[index+7] == -1) ? 0 : w7;
 
         scalar_t sum_w = w0 + w1 + w2 + w3 + w4 + w5 + w6 + w7 + 1e-8;
         w0 /= sum_w; 
