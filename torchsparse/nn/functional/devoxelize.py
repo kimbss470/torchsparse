@@ -60,7 +60,7 @@ def calc_ti_weights(coords: torch.Tensor,
                     scale: float = 1) -> torch.Tensor:
     with torch.no_grad():
         idx_query = idx_query.transpose(1,0).contiguous
-        w = torchsparse.backend.calc_ti_weights_cuda(coords, idx_query, scale).transpose(1,0).contiguous()
+        w = torchsparse.backend.calc_ti_weights_cuda(coords, idx_query, float(scale)).transpose(1,0).contiguous()
 
     return w
 
