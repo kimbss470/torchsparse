@@ -30,6 +30,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("devoxelize_forward_cuda", &devoxelize_forward_cuda);
   m.def("devoxelize_backward_cpu", &devoxelize_backward_cpu);
   m.def("devoxelize_backward_cuda", &devoxelize_backward_cuda);
+  m.def("calc_ti_weights_cuda", &calc_ti_weights_cuda);
   m.def("hash_cpu", &hash_cpu);
   m.def("hash_cuda", &hash_cuda);
   m.def("kernel_hash_cpu", &kernel_hash_cpu);
