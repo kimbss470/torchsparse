@@ -15,8 +15,8 @@ class SparseTensor:
         coords: torch.Tensor,
         stride: Union[int, Tuple[int, ...]] = 1,
     ) -> None:
-        self.feats = feats
-        self.coords = coords
+        self.feats = torch.Tensor(feats)
+        self.coords = torch.Tensor(coords)
         self.stride = make_ntuple(stride, ndim=3)
         self.cmaps: Dict[Tuple[int, ...], torch.Tensor] = {}
         self.kmaps: Dict[Tuple[Any, ...], Any] = {}

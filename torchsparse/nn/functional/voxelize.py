@@ -18,7 +18,7 @@ class VoxelizeFunction(Function):
 
         if feats.device.type == 'cuda':
             output = torchsparse.backend.voxelize_forward_cuda(
-                feats, coords, counts)
+                feats, coords, counts).cuda()
         elif feats.device.type == 'cpu':
             output = torchsparse.backend.voxelize_forward_cpu(
                 feats, coords, counts)
@@ -38,7 +38,7 @@ class VoxelizeFunction(Function):
 
         if grad_output.device.type == 'cuda':
             grad_feats = torchsparse.backend.voxelize_backward_cuda(
-                grad_output, coords, counts, input_size)
+                grad_output, coords, counts, input_size).cuda()
         elif grad_output.device.type == 'cpu':
             grad_feats = torchsparse.backend.voxelize_backward_cpu(
                 grad_output, coords, counts, input_size)

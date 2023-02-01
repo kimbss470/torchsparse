@@ -1,6 +1,11 @@
 import math
-from functools import cached_property
+import sys
 from typing import Dict, List, Tuple, Union
+
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from backports.cached_property import cached_property
 
 import numpy as np
 import torch
@@ -24,7 +29,9 @@ class Conv3d(nn.Module):
                  dilation: int = 1,
                  bias: bool = False,
                  transposed: bool = False,
-                 config: Dict = None) -> None:
+                 config: Dict = None,
+                 voxel_mode: str = 'cube',
+                 voxel_size: Union[float, List[float], Tuple[float, ...]] = 3,) -> None:
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -32,6 +39,8 @@ class Conv3d(nn.Module):
         self.stride = make_ntuple(stride, ndim=3)
         self.dilation = dilation
         self.transposed = transposed
+        self.voxel_mode = voxel_mode
+        self.voxel_size = voxel_size
 
         if config is None:
             config = {}
@@ -108,4 +117,6 @@ class Conv3d(nn.Module):
                         transposed=self.transposed,
                         epsilon=epsilon,
                         mm_thresh=mm_thresh,
-                        kmap_mode=self.config['kmap_mode'])
+                        kmap_mode=self.config['kmap_mode'],
+                        voxel_mode=self.voxel_mode,
+                        voxel_size=self.voxel_size)

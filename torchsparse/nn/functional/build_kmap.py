@@ -7,7 +7,10 @@ from torchsparse.nn import functional as F
 from torchsparse.nn.utils import get_kernel_offsets
 from torchsparse.utils import make_ntuple
 
-import nvtx
+import globalvar
+from grouping import grouping_analysis 
+
+
 __all__ = ['build_kernel_map']
 
 
@@ -15,7 +18,9 @@ def build_kernel_map(_coords: torch.Tensor,
                      kernel_size: Union[int, Tuple[int, ...]] = 2,
                      stride: Union[int, Tuple[int, ...]] = 2,
                      tensor_stride: Union[int, Tuple[int, ...]] = 1,
-                     mode='hashmap') -> torch.Tensor:
+                     mode='hashmap',
+                     voxel_mode='cube',
+                     voxel_size=(0.05,0.05,0.05)) -> torch.Tensor:
     if mode == 'grid':
         coords = _coords[:, [3, 0, 1, 2]]
         stride = make_ntuple(stride, ndim=3)
@@ -45,43 +50,45 @@ def build_kernel_map(_coords: torch.Tensor,
         else:
             return tuple(out[:2]) + (out[2][:, [1, 2, 3, 0]],) + tuple(out[3:])
     else:
-        nvtx.push_range("map search")
-        nvtx.push_range("get kernel off")
+
         offsets = get_kernel_offsets(kernel_size,
                                      stride=tensor_stride,
                                      device=_coords.device)
 
-        nvtx.pop_range()
-        nvtx.push_range("hash cal")
         references = F.sphash(_coords)
-        nvtx.pop_range()
         kernel_size = make_ntuple(kernel_size, ndim=3)
         stride = make_ntuple(stride, ndim=3)
         if any(s > 1 for s in stride):
             coords = F.spdownsample(_coords, stride, kernel_size, tensor_stride)
         else:
             coords = _coords
-        nvtx.push_range("hash cal")
-        queries = F.sphash(coords, offsets)
-        nvtx.pop_range()
-        nvtx.push_range("hash query")
+
+        if voxel_mode == 'cube':
+            queries = F.sphash(coords, offsets)
+        elif voxel_mode == 'cylinder':
+            queries = F.cylinder_sphash(coords, offsets, voxel_size)
+        else:
+            queries = F.sphash(coords, offsets)
+
         results = F.sphashquery(queries, references)
-        nvtx.pop_range()
-        nvtx.push_range("etc")
-        nbsizes = torch.sum(results != -1, dim=1)
+
         #  import pdb; pdb.set_trace()
+        
+        '''
+        # Do grouping then analyze
+        # @kimbs
+        grouping_analysis(_coords, coords, results, stride)
+        '''
+
+        nbsizes = torch.sum(results != -1, dim=1)
         nbmaps = torch.nonzero(results != -1)
         nbmaps[:, 0] = results.view(-1)[nbmaps[:, 0] * results.size(1)
                                         + nbmaps[:, 1]]
         # important for build masks
         nbmaps = nbmaps.contiguous()
-        nvtx.pop_range()
-        nvtx.push_range("build mask")
         input_mask, output_mask = torchsparse.backend.build_mask_from_kmap(
             _coords.shape[0], coords.shape[0], nbmaps.int(), nbsizes.int())
 
-        nvtx.pop_range()
-        nvtx.pop_range()
         if any(s > 1 for s in stride):
             return nbmaps, nbsizes, coords, input_mask, output_mask
         else:

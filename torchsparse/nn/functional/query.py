@@ -19,7 +19,7 @@ def sphashquery(queries: torch.Tensor,
 
     if queries.device.type == 'cuda':
         output = torchsparse.backend.hash_query_cuda(queries, references,
-                                                     indices)
+                                                     indices).cuda()
     elif queries.device.type == 'cpu':
         output = torchsparse.backend.hash_query_cpu(queries, references,
                                                     indices)

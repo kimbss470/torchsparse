@@ -10,8 +10,6 @@ from torchsparse import SparseTensor
 from torchsparse.nn import functional as F
 from torchsparse.utils import make_ntuple
 
-import nvtx
-
 buffer = torch.Tensor()
 
 __all__ = ['conv3d']
@@ -55,7 +53,6 @@ class ConvolutionFunction(Function):
                                      device=input.device)
 
         if input.device.type == 'cuda':
-            nvtx.push_range("conv after mapsearch")
             output = torchsparse.backend.convolution_forward_cuda(
                 input,
                 weight,
@@ -70,7 +67,6 @@ class ConvolutionFunction(Function):
                 transposed,
                 buffer,
             )
-            nvtx.pop_range()
         elif input.device.type == 'cpu':
             torchsparse.backend.convolution_forward_cpu(input, output, weight,
                                                         nbmaps, nbsizes.cpu(),
@@ -152,8 +148,9 @@ def conv3d(
     epsilon: float = 0.0,
     mm_thresh: int = 0,
     kmap_mode: str = 'hashmap',
+    voxel_mode: str='cube',
+    voxel_size: Union[float, List[float], Tuple[float, ...]] = 3,
 ) -> SparseTensor:
-    nvtx.push_range("conv", domain="torch-layer")
     feats, coords = input.feats, input.coords
 
     kernel_size = make_ntuple(kernel_size, ndim=3)
@@ -170,17 +167,19 @@ def conv3d(
                                  device=input.F.device,
                                  requires_grad=False)
 
-    if kernel_size == (1, 1, 1) and stride == (1, 1, 1) and dilation == (1, 1, 1):
+    if kernel_size == (1, 1, 1) and stride == (1, 1, 1) and dilation == (1, 1,
+                                                                         1):
         feats = feats.matmul(weight)
         if bias is not None:
             feats += bias
         output = SparseTensor(coords=coords, feats=feats, stride=input.stride)
     elif not transposed:
         kmap = input.kmaps.get((input.stride, kernel_size, stride, dilation))
+        
         if kmap is None:
             if any(s > 1 for s in stride):
                 kmap_out = F.build_kernel_map(coords, kernel_size, stride,
-                                              input.stride, kmap_mode)
+                                              input.stride, kmap_mode, voxel_mode, voxel_size)
                 if len(kmap_out) == 3:
                     nbmaps, nbsizes, coords = kmap_out
                     input_mask, output_mask = None, None
@@ -191,7 +190,7 @@ def conv3d(
             else:
 
                 kmap_out = F.build_kernel_map(coords, kernel_size, stride,
-                                              input.stride, kmap_mode)
+                                              input.stride, kmap_mode, voxel_mode, voxel_size)
                 if len(kmap_out) == 2:
                     nbmaps, nbsizes = kmap_out
                     input_mask, output_mask = None, None
@@ -211,6 +210,7 @@ def conv3d(
             ]
             input.kmaps[(input.stride, kernel_size, stride, dilation)] = kmap
 
+        #  kmap =
         feats = ConvolutionFunction.apply(
             feats,
             weight,
@@ -232,7 +232,7 @@ def conv3d(
             feats=feats,
             stride=tuple(input.stride[k] * stride[k] for k in range(3)),
         )
-    else: # transposed conv
+    else:
         tensor_stride = tuple(input.stride[k] // stride[k] for k in range(3))
         kmap = input.kmaps[(tensor_stride, kernel_size, stride, dilation)]
         feats = ConvolutionFunction.apply(
@@ -260,5 +260,4 @@ def conv3d(
     output.cmaps = input.cmaps
     output.cmaps.setdefault(output.stride, output.coords)
     output.kmaps = input.kmaps
-    nvtx.pop_range(domain="torch-layer")
     return output

@@ -23,6 +23,7 @@ def sparse_collate(inputs: List[SparseTensor]) -> SparseTensor:
         assert x.stride == stride, (x.stride, stride)
 
         input_size = x.coords.shape[0]
+
         batch = torch.full((input_size, 1),
                            k,
                            device=x.coords.device,
@@ -31,10 +32,12 @@ def sparse_collate(inputs: List[SparseTensor]) -> SparseTensor:
         coords.append(torch.cat((x.coords, batch), dim=1))
         feats.append(x.feats)
 
+
     coords = torch.cat(coords, dim=0)
     feats = torch.cat(feats, dim=0)
     output = SparseTensor(coords=coords, feats=feats, stride=stride)
     return output
+
 
 
 def sparse_collate_fn(inputs: List[Any]) -> Any:
@@ -57,3 +60,4 @@ def sparse_collate_fn(inputs: List[Any]) -> Any:
         return output
     else:
         return inputs
+
