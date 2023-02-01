@@ -7,8 +7,7 @@ from torchsparse.nn import functional as F
 from torchsparse.nn.utils import get_kernel_offsets
 from torchsparse.utils import make_ntuple
 
-import globalvar
-from grouping import grouping_analysis 
+#  from grouping import grouping_analysis
 
 
 __all__ = ['build_kernel_map']
