@@ -449,6 +449,7 @@ __global__ void get_masks_from_kmap_kernel(int64_t n_points, int64_t n_points_ou
 std::vector<at::Tensor> build_kernel_map_subm(
     at::Tensor _in_coords, at::Tensor _coords_min, at::Tensor _coords_max,
     at::Tensor _kernel_sizes, at::Tensor _stride, at::Tensor _tensor_stride) {
+  printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
   int64_t n_points = _in_coords.size(0);
   int64_t kernel_volume = (int64_t)(torch::prod(_kernel_sizes).item<int64_t>());
   at::Tensor augmented_tensor_stride =
