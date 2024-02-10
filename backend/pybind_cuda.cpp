@@ -35,7 +35,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("hash_cuda", &hash_cuda);
   m.def("kernel_hash_cpu", &kernel_hash_cpu);
   m.def("kernel_hash_cuda", &kernel_hash_cuda);
-  m.def("cylinder_kernel_hash_cuda", &cylinder_kernel_hash_cuda);
   m.def("hash_query_cpu", &hash_query_cpu);
   m.def("hash_query_cuda", &hash_query_cuda);
   m.def("build_kernel_map_subm", &build_kernel_map_subm);

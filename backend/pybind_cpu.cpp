@@ -18,7 +18,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("devoxelize_backward_cpu", &devoxelize_backward_cpu);
   m.def("hash_cpu", &hash_cpu);
   m.def("kernel_hash_cpu", &kernel_hash_cpu);
-  m.def("cylinder_kernel_hash_cpu", &kernel_hash_cpu);
   m.def("hash_query_cpu", &hash_query_cpu);
   m.def("count_cpu", &count_cpu);
 }
